@@ -67,7 +67,7 @@ class InputAutomator(webdriver.Ie):
 
     def __init__(self, *args, **kwargs):
         kwargs['executable_path'] = 'IEDriverServer.exe'
-        kwargs['options'] = self.options
+        kwargs['ie_options'] = self.options
         super().__init__(*args, **kwargs)
         self.maximize_window()
         self.ahk = AHK(executable_path="AutoHotkeyU64.exe")

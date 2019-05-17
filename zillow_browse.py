@@ -7,7 +7,6 @@ from math import sin, cos, sqrt, atan2, radians
 file_name = "listings.csv"
 
 zipcodes = {}
-
 patterns = {
     "listing_id": r'"zpid":([\d]+,)',
     "price": r'"price":"\$([\d,]+)',
@@ -51,7 +50,7 @@ def get_listings(raw_source):
                 new_obs[var] = search(patterns[var], listing).group(1).replace(",", " ")
                 if var == "price":
                     new_obs[var] = new_obs[var].replace(" ", "")
-            except AttributeError:
+            except (AttributeError, IndexError):
                 new_obs[var] = None
 
             if new_obs["latitude"] is not None and new_obs["longitude"] is not None and var == "distance":
