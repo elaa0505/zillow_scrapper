@@ -1,12 +1,12 @@
 from input_automation import InputAutomator
 from time import sleep
 from re import search
+from math import sin, cos, sqrt, atan2, radians
+
 
 file_name = "listings.csv"
 
 zipcodes = {}
-
-vars_to_scrape = ['listing_id', 'address', 'price', 'sqft', 'beds', 'baths', 'home_type', 'url']
 
 patterns = {
     "listing_id": r'"zpid":([\d]+,)',
@@ -17,8 +17,28 @@ patterns = {
     "baths": r'"baths":([\w\.]+)',
     "home_type": r'"homeType":"([\w]+)',
     "url": r'^"([\w:\/\.-]+)",',
+    "latitude": r'"latitude":([-\d\.]+),',
+    "longitude": r'"longitude":([-\d\.]+),',
+    "distance": r''
 }
 
+vars_to_scrape = patterns.keys()
+
+def get_distance(lat, long):
+    R = 6373.0
+    lat1 = radians(float(lat))
+    lon1 = radians(float(long))
+    lat2 = radians(32.8662187)
+    lon2 = radians(-117.2499748)
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+
+    return distance * 0.621371  # convert to miles because 'merica
 
 def get_listings(raw_source):
     output = []
@@ -34,11 +54,16 @@ def get_listings(raw_source):
             except AttributeError:
                 new_obs[var] = None
 
+            if new_obs["latitude"] is not None and new_obs["longitude"] is not None and var == "distance":
+                new_obs["distance"] = get_distance(new_obs["latitude"], new_obs["longitude"])
+
             if not (None in new_obs.values() or "null" in new_obs.values()):
                 output.append(new_obs)
     return output
 
 driver = InputAutomator()
+
+zipcodes = [str(zipcode) for zipcode in zipcodes]
 
 output_data = []
 for zip in zipcodes:
@@ -54,7 +79,7 @@ for zip in zipcodes:
     driver.type("{Enter}")
     sleep(1)
     # Check if no results were found for search
-    if driver.wait_for("css", ".zoom-out-message", timeout=5) or driver.wait_for("class", "zsg-icon-x-thick", timeout=5):
+    if driver.wait_for("class", "zsg-notification-bar", timeout=5):
         continue
     while driver.wait_for("class", "result-count"):
         new_listings = get_listings(driver.page_source)
