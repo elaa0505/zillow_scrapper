@@ -7,6 +7,7 @@ from math import sin, cos, sqrt, atan2, radians
 file_name = "listings.csv"
 
 zipcodes = {}
+
 patterns = {
     "listing_id": r'"zpid":([\d]+,)',
     "price": r'"price":"\$([\d,]+)',
@@ -22,6 +23,22 @@ patterns = {
 }
 
 vars_to_scrape = patterns.keys()
+output_data = []
+
+
+try:
+    with open(file_name, "r") as input_file:
+        varlist = [var.strip() for var in input_file.readline().split(",")]    # skip last comma
+        assert set(vars_to_scrape) == set(varlist), "Loaded file does not contain the same vars as scrapper"
+        for line in input_file:
+            data = [key.strip() for key in line.split(",")]
+            new_obs = dict(zip(varlist, data))
+            output_data.append(new_obs)
+except FileNotFoundError as e:
+    print("Error loading data, continuing.")
+except AssertionError as e:
+    print(e)
+
 
 def get_distance(lat, long):
     R = 6373.0
@@ -38,6 +55,7 @@ def get_distance(lat, long):
     distance = R * c
 
     return distance * 0.621371  # convert to miles because 'merica
+
 
 def get_listings(raw_source):
     output = []
@@ -60,12 +78,12 @@ def get_listings(raw_source):
                 output.append(new_obs)
     return output
 
+
 driver = InputAutomator()
 
 zipcodes = [str(zipcode) for zipcode in zipcodes]
 
-output_data = []
-for zip in zipcodes:
+for zipcode in zipcodes:
     driver.get('https://www.zillow.com/homes/for_rent/')
 
     driver.wait_for("class", "zsg-searchbox-content-container")
@@ -74,7 +92,7 @@ for zip in zipcodes:
     driver.click()
     sleep(1)
     driver.type("^a{Del}")
-    driver.type(zip)
+    driver.type(zipcode)
     driver.type("{Enter}")
     sleep(1)
     # Check if no results were found for search
